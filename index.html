@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0e0c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ObsiNote">
+  <title>ObsiNote</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:          #0f0e0c;
+      --surface:     #1a1915;
+      --surface2:    #222118;
+      --border:      #2c2b24;
+      --border2:     #3a3930;
+      --text:        #e6ddc8;
+      --text-muted:  #6e6a5e;
+      --accent:      #c9963e;
+      --accent-dim:  #7a5c24;
+      --success:     #72b072;
+      --danger:      #c07070;
+      --inset-top:   env(safe-area-inset-top, 0px);
+      --inset-bot:   env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', serif;
+      overscroll-behavior: none;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+
+    /* ── Screens ───────────────────────────────────────── */
+    .screen { display: none; flex: 1; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── Welcome ───────────────────────────────────────── */
+    #screen-welcome {
+      align-items: center;
+      justify-content: center;
+      padding: 40px 36px;
+      gap: 28px;
+      text-align: center;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 72px;
+      height: 72px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg { width: 38px; height: 38px; }
+
+    .brand-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    .welcome-desc {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 2;
+    }
+
+    .welcome-note {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.9;
+      text-align: left;
+      width: 100%;
+    }
+
+    .pick-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: #0f0e0c;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: opacity 0.15s;
+    }
+    .pick-btn:active { opacity: 0.8; }
+
+    /* ── App Screen ────────────────────────────────────── */
+    #screen-app { flex: 1; }
+
+    /* Settings Drawer */
+    #settings-drawer {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #settings-drawer.open { max-height: 360px; }
+    .drawer-inner { padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    .setting-group { display: flex; flex-direction: column; gap: 7px; }
+
+    .setting-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .setting-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .setting-input {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .setting-input:focus { border-color: var(--accent-dim); }
+    .setting-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+    .setting-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* toggle row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toggle-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .toggle {
+      position: relative;
+      width: 42px;
+      height: 24px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border2);
+      border-radius: 12px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent-dim); }
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(18px);
+      background: var(--accent);
+    }
+
+    .drawer-actions { display: flex; gap: 8px; }
+
+    .btn-ghost {
+      flex: 1;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .btn-ghost:active { border-color: var(--border2); }
+
+    .btn-accent {
+      flex: 2;
+      padding: 11px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: #0f0e0c;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-accent:active { opacity: 0.85; }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 56px;
+      padding-top: var(--inset-top);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .app-logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    .folder-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      max-width: 200px;
+      transition: border-color 0.15s;
+    }
+    .folder-pill:active { border-color: var(--accent-dim); }
+
+    .folder-pill svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.7; }
+
+    .folder-pill-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Main area */
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 24px 16px;
+      gap: 10px;
+    }
+
+    .input-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    #memo-input {
+      flex: 1;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', serif;
+      font-size: 24px;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.65;
+      resize: none;
+      caret-color: var(--accent);
+      min-height: 160px;
+    }
+    #memo-input::placeholder { color: var(--text-muted); opacity: 0.4; }
+
+    /* Footer */
+    .app-footer {
+      padding: 12px 20px;
+      padding-bottom: calc(16px + var(--inset-bot));
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .char-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .filename-preview {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 17px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      color: #0f0e0c;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: opacity 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .save-btn:not(:disabled):active { transform: scale(0.98); opacity: 0.9; }
+    .save-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    .save-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      width: 60px; height: 60px;
+      margin: -30px;
+      animation: ripple 0.5s linear;
+      pointer-events: none;
+    }
+    @keyframes ripple {
+      from { transform: scale(0); opacity: 1; }
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: calc(90px + var(--inset-bot));
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 24px;
+      padding: 9px 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 999;
+    }
+    #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: var(--success); color: var(--success); }
+    #toast.error   { border-color: var(--danger);  color: var(--danger);  }
+  </style>
+</head>
+<body>
+
+<!-- ▸ Welcome Screen ─────────────────────────────────── -->
+<div id="screen-welcome" class="screen">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="4" width="22" height="30" rx="3" fill="#1a1915" stroke="#c9963e" stroke-width="1.5"/>
+        <line x1="11" y1="13" x2="23" y2="13" stroke="#c9963e" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11" y1="19" x2="23" y2="19" stroke="#c9963e" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+        <line x1="11" y1="25" x2="18" y2="25" stroke="#c9963e" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+        <circle cx="30" cy="30" r="7" fill="#c9963e"/>
+        <line x1="30" y1="27" x2="30" y2="33" stroke="#0f0e0c" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="27" y1="30" x2="33" y2="30" stroke="#0f0e0c" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-name">ObsiNote</div>
+  </div>
+
+  <div class="welcome-desc">
+    Obsidian Vault のフォルダを選択して<br>
+    クイックメモを始めましょう
+  </div>
+
+  <div class="welcome-note">
+    ⚠ このアプリはファイルを直接作成します<br>
+    Vault のルートまたはサブフォルダを<br>
+    指定してください（例：Inbox）
+  </div>
+
+  <button class="pick-btn" id="pick-btn-welcome" onclick="pickFolder()">
+    フォルダを選択する
+  </button>
+</div>
+
+<!-- ▸ App Screen ─────────────────────────────────────── -->
+<div id="screen-app" class="screen">
+
+  <!-- Settings Drawer -->
+  <div id="settings-drawer">
+    <div class="drawer-inner">
+      <div class="setting-group">
+        <div class="setting-label">Vault フォルダ</div>
+        <div class="setting-value" id="vault-display">—</div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">保存先サブフォルダ（省略可）</div>
+        <input type="text" id="subfolder-input" class="setting-input"
+               placeholder="例: Inbox　または　00_FleetingNotes"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="setting-hint">Vault直下に保存する場合は空欄</div>
+      </div>
+      <div class="setting-group">
+        <div class="toggle-row">
+          <div class="toggle-label">ファイル名に日付を付ける</div>
+          <label class="toggle">
+            <input type="checkbox" id="date-prefix-toggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="setting-hint">例: 2026-05-07 メモの内容.md</div>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn-ghost" onclick="closeSettings()">キャンセル</button>
+        <button class="btn-ghost" onclick="pickFolder()" style="flex:1;">📁 変更</button>
+        <button class="btn-accent" onclick="saveSettings()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="app-logo">ObsiNote</div>
+    <div class="folder-pill" onclick="toggleSettings()" id="folder-pill">
+      <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 3.5C1 2.67 1.67 2 2.5 2H5l1 1.5h3.5C10.33 3.5 11 4.17 11 5v4.5C11 10.33 10.33 11 9.5 11h-7C1.67 11 1 10.33 1 9.5V3.5Z" stroke="#6e6a5e" stroke-width="1.2"/>
+      </svg>
+      <span class="folder-pill-text" id="folder-pill-text">未設定</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="app-main">
+    <div class="input-label">メモ（ファイル名になります）</div>
+    <textarea id="memo-input"
+              placeholder="何でもメモしてください…"
+              rows="8"
+              autocomplete="off"
+              oninput="onMemoInput()"></textarea>
+  </div>
+
+  <!-- Footer -->
+  <div class="app-footer">
+    <div class="footer-meta">
+      <div class="char-count" id="char-count">0 文字</div>
+      <div class="filename-preview" id="filename-preview"></div>
+    </div>
+    <button class="save-btn" id="save-btn" onclick="saveNote(event)" disabled>
+      保存する
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────────────────
+let dirHandle   = null;
+let subfolder   = '';
+let datePrefix  = false;
+let settingsOpen = false;
+
+// ──────────────────────────────────────────────────────────
+// IndexedDB (persist directory handle)
+// ──────────────────────────────────────────────────────────
+async function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('obsinote', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+async function dbGet(key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx  = db.transaction('kv', 'readonly');
+    const req = tx.objectStore('kv').get(key);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+async function dbSet(key, val) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx  = db.transaction('kv', 'readwrite');
+    const req = tx.objectStore('kv').put(val, key);
+    req.onsuccess = () => res();
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+// ──────────────────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────────────────
+async function init() {
+  // Load prefs
+  subfolder  = localStorage.getItem('subfolder')  || '';
+  datePrefix = localStorage.getItem('datePrefix') === 'true';
+
+  // Restore directory handle
+  try {
+    const handle = await dbGet('dirHandle');
+    if (handle) {
+      const perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        dirHandle = handle;
+        showScreen('app');
+        return;
+      }
+      // Need user gesture to requestPermission → show app but prompt
+      dirHandle = handle;
+      showScreen('app');
+      showToast('📁 フォルダの権限を確認してください', '');
+      return;
+    }
+  } catch (_) {}
+
+  showScreen('welcome');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (id === 'app') {
+    refreshAppUI();
+    setTimeout(() => document.getElementById('memo-input').focus(), 150);
+  }
+}
+
+function refreshAppUI() {
+  const vaultName = dirHandle ? dirHandle.name : '?';
+  const sub       = subfolder || '';
+  const display   = sub ? `${vaultName}/${sub}` : vaultName;
+  document.getElementById('folder-pill-text').textContent = display;
+  document.getElementById('vault-display').textContent    = dirHandle ? dirHandle.name : '—';
+  document.getElementById('subfolder-input').value        = subfolder;
+  document.getElementById('date-prefix-toggle').checked   = datePrefix;
+}
+
+// ──────────────────────────────────────────────────────────
+// Folder picker
+// ──────────────────────────────────────────────────────────
+async function pickFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    showToast('このブラウザは非対応です。Chrome を使ってください', 'error');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    dirHandle = handle;
+    await dbSet('dirHandle', handle);
+    showScreen('app');
+    showToast('✓ フォルダを設定しました', 'success');
+    closeSettings();
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      showToast('フォルダの選択に失敗しました', 'error');
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Settings drawer
+// ──────────────────────────────────────────────────────────
+function toggleSettings() {
+  settingsOpen ? closeSettings() : openSettings();
+}
+
+function openSettings() {
+  settingsOpen = true;
+  refreshAppUI();
+  document.getElementById('settings-drawer').classList.add('open');
+}
+
+function closeSettings() {
+  settingsOpen = false;
+  document.getElementById('settings-drawer').classList.remove('open');
+}
+
+function saveSettings() {
+  subfolder  = document.getElementById('subfolder-input').value.trim().replace(/^\/+|\/+$/g, '');
+  datePrefix = document.getElementById('date-prefix-toggle').checked;
+  localStorage.setItem('subfolder',  subfolder);
+  localStorage.setItem('datePrefix', datePrefix);
+  refreshAppUI();
+  closeSettings();
+  showToast('✓ 設定を保存しました', 'success');
+}
+
+// ──────────────────────────────────────────────────────────
+// Memo input handlers
+// ──────────────────────────────────────────────────────────
+function onMemoInput() {
+  const val = document.getElementById('memo-input').value;
+  const len = val.length;
+  document.getElementById('char-count').textContent = `${len} 文字`;
+
+  const trimmed = val.trim();
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.disabled = trimmed.length === 0;
+
+  if (trimmed) {
+    document.getElementById('filename-preview').textContent =
+      buildFilename(trimmed).replace(/^(.{28}).*/, '$1…');
+  } else {
+    document.getElementById('filename-preview').textContent = '';
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// File creation
+// ──────────────────────────────────────────────────────────
+function buildFilename(memo) {
+  const sanitized = memo.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().substring(0, 150);
+  if (datePrefix) {
+    const d = new Date().toISOString().slice(0, 10);
+    return `${d} ${sanitized}.md`;
+  }
+  return `${sanitized}.md`;
+}
+
+function buildContent() {
+  const now  = new Date();
+  const ts   = now.toISOString().replace('T', 'T').slice(0, 19);
+  return `---\ncreated: ${ts}\naliases:\ntags:\n---\n---\n\n## 関連ノート\n-   `;
+}
+
+async function saveNote(event) {
+  const memo = document.getElementById('memo-input').value.trim();
+  if (!memo) return;
+
+  if (!dirHandle) {
+    // Try to request permission first
+    try {
+      const perm = await dirHandle?.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') throw new Error('no permission');
+    } catch {
+      showToast('📁 フォルダを選択してください', 'error');
+      return;
+    }
+  }
+
+  // Ripple effect
+  if (event) {
+    const btn    = document.getElementById('save-btn');
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const rect   = btn.getBoundingClientRect();
+    ripple.style.left = (event.clientX - rect.left) + 'px';
+    ripple.style.top  = (event.clientY - rect.top)  + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled    = true;
+  btn.textContent = '保存中…';
+
+  try {
+    // Verify / re-request permission
+    let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+    }
+    if (perm !== 'granted') throw new Error('NotAllowedError');
+
+    // Navigate to target directory
+    let targetDir = dirHandle;
+    if (subfolder) {
+      for (const part of subfolder.split('/').filter(Boolean)) {
+        targetDir = await targetDir.getDirectoryHandle(part, { create: true });
+      }
+    }
+
+    // Write file
+    const filename   = buildFilename(memo);
+    const fileHandle = await targetDir.getFileHandle(filename, { create: true });
+    const writable   = await fileHandle.createWritable();
+    await writable.write(buildContent());
+    await writable.close();
+
+    // Clear & feedback
+    document.getElementById('memo-input').value = '';
+    onMemoInput();
+    showToast(`✓ 保存しました`, 'success');
+    document.getElementById('memo-input').focus();
+
+  } catch (e) {
+    console.error(e);
+    const msg = e.message === 'NotAllowedError' || e.name === 'NotAllowedError'
+      ? '権限がありません。フォルダを再選択してください'
+      : `エラー: ${e.message}`;
+    showToast(msg, 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '保存する';
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+// Toast
+// ──────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'visible ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
+
+// ──────────────────────────────────────────────────────────
+// Keyboard shortcut (desktop / hardware keyboard)
+// ──────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    saveNote(null);
+  }
+  if (e.key === 'Escape' && settingsOpen) {
+    closeSettings();
+  }
+});
+
+// ──────────────────────────────────────────────────────────
+// Service Worker
+// ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ── Start ────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
